@@ -1,0 +1,26 @@
+#sim_game_container {
+    width: 100%;
+
+    max-height: 60vh; /* Up to 60% of the viewport height */
+    max-width: 60vh; /* Ensure the width matches the height for a square */
+		
+    aspect-ratio: 1 / 1; /* Enforces square aspect ratio */
+    border: 10px solid #743f39;
+    border-radius: 10px;
+    background-color: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+	
+	margin-left: auto;
+    margin-right: auto;	
+}
+
+#sim_game_container canvas {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    display: block;
+}

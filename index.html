@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="badjoerichards">
+    <title>City AI for AI Agents</title>
+    <link rel="stylesheet" href="./sim_game.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.9.0/phaser.min.js" integrity="sha512-1/GoOMiElpIy6RQnz9gYXfWZjIcN/IKBqidulcL2PH0gOpJ0s4cQeIFYkqEIwm6iVqJAMrGJ801BZ1MMbZOyOw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="./sim_game.js"></script>
+</head>
+<body>
+    <div id="sim_outer_container">
+        <div id="sim_game_container"></div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            const simWorld = new SimWorld("#sim_game_container");
+            
+            simWorld.addAgent([
+                { 
+                    id: "red101",
+                    name: "Red",
+                    frameWidth: 32,
+                    frameHeight: 32,
+                    animations: {
+                        idle: { frames: [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 2, 3, 1, 1, 1], fps: 9 },
+                        walking: { frames: [4, 5, 6, 7], fps: 8 },
+                        talking: { frames: [8, 9, 10, 11, 12, 13, 14, 15], fps: 16 }
+                    },
+                    texture: './assets/characters/red/red.png',
+                    visible: true,
+                    
+                    // Display Properties
+                    scale: 2,
+                    anchor: 0.5,
+                    layer: 1,
+                    
+                    // Position and State
+                    position_x: 30,
+                    position_y: 30,
+                    direction: 0,    // 0 to 360
+                    state: 'idle',
+                    
+                    // Interaction Properties
+                    interactive: true,
+                    buttonMode: true,
+                    speed: 0.1,
+                    
+                    // Optional Properties
+                    description: "A powerful red spirit with magical abilities."                    
+                },
+            ]);
+            
+            simWorld.addAgent([
+                { 
+                    id: "bald101",
+                    name: "Bald",
+                    frameWidth: 32,
+                    frameHeight: 32,
+                    animations: {
+                        idle: { frames: [0, 1, 2, 3], fps: 4 },
+                        walking: { frames: [4, 5, 6, 7], fps: 8 },
+                        talking: { frames: [8, 9, 10, 11, 12, 13, 14, 15], fps: 16 }
+                    },
+                    texture: './assets/characters/bald/bald.png',
+                    visible: true,
+                    
+                    // Display Properties
+                    scale: 2,
+                    anchor: 0.5,
+                    layer: 1,
+                    
+                    // Position and State
+                    position_x: 100,
+                    position_y: 100,
+                    direction: 0,    // 0 to 360
+                    state: 'idle',
+                    
+                    // Interaction Properties
+                    interactive: true,
+                    buttonMode: true,
+                    speed: 0.1,
+                    
+                    // Optional Properties
+                    description: "Just a bald man."                    
+                },
+            ]);
+
+			setTimeout(function() {
+				simWorld.teleportAgentById("red101", 100, 200);
+			},3000);            
+
+        });
+    </script>
+</body>
+</html>
