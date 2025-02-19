@@ -1,166 +1,150 @@
-class SimWorld {
+// Remove any existing SimWorld to prevent conflicts
+if (window.SimWorld) {
+    delete window.SimWorld;
+  }
+  
+  class SimWorld {
     constructor(containerId) {
-        this.containerId = containerId;
-        this.agents = []; // Store agents for reference
-        this.agentMap = new Map(); // Store agents by ID for quick access
-        this.game = null; // Ensure game is initialized later
-        this.initPhaserGame();
-
-        // Add resize listener after game initialization
-        window.addEventListener("resize", () => {
-            if (this.game) this.resizeGame();
-        });
+      this.config = {
+        type: Phaser.AUTO,
+        parent: containerId.replace('#', ''),
+        width: 800,
+        height: 600,
+        backgroundColor: '#000000',
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 0 },
+            debug: false
+          }
+        },
+        scene: {
+          preload: this.preload.bind(this),
+          create: this.create.bind(this),
+          update: this.update.bind(this),
+        },
+        canvasStyle: 'width: 100%; height: 100%;',
+        willReadFrequently: true
+      };
+  
+      this.pendingAgents = [];
+      this.game = new Phaser.Game(this.config);
+      this.agents = new Map();
     }
-
-    initPhaserGame() {
-        const container = document.querySelector(this.containerId);
-
-        const config = {
-            type: Phaser.AUTO,
-            parent: this.containerId.replace("#", ""),
-            width: 800,
-            height: 800,
-            backgroundColor: "#1d212d",
-            scene: {
-                preload: () => this.preloadScene(),
-                create: () => this.createScene(),
-                update: () => this.updateScene(),
-            },
-            canvasContextAttributes: {
-                willReadFrequently: true,
-            },
-        };
-
-        this.game = new Phaser.Game(config);
-        console.log("Phaser game initialized:", this.game);
+  
+    preload() {
+      this.scene = this.game.scene.scenes[0];
     }
-
-    preloadScene() {
-        console.log("Preloading assets.");
-        this.agents.forEach((agent) => {
-            if (agent.texture && agent.name) {
-                console.log(`Loading texture for agent: ${agent.name} from ${agent.texture}`);
-                this.game.scene.scenes[0].load.spritesheet(agent.name, agent.texture, {
-                    frameWidth: agent.frameWidth,
-                    frameHeight: agent.frameHeight,
-                });
-            } else {
-                console.warn(`Missing texture or name for agent:`, agent);
-            }
-        });
+  
+    create() {
+      this.scene.cameras.main.setBackgroundColor('#000000');
+      
+      if (this.pendingAgents.length > 0) {
+        this.pendingAgents.forEach(config => this._createAgent(config));
+        this.pendingAgents = [];
+      }
     }
-
-    createScene() {
-        console.log("Creating scene.");
-        this.agents.forEach((agent) => this.createAgent(agent));
-    }
-
-    updateScene() {
-        // Future logic for updates can go here
-    }
-
-    resizeGame() {
-        const container = document.querySelector(this.containerId);
-        const size = container.offsetWidth;
-
-        if (this.game && this.game.scale) {
-            this.game.scale.resize(size, size);
+  
+    update() {
+      this.agents.forEach(agent => {
+        if (agent.sprite && agent.currentState) {
+          const animKey = `${agent.config.id}_${agent.currentState}`;
+          if (agent.sprite.anims && !agent.sprite.anims.isPlaying) {
+            agent.sprite.anims.play(animKey);
+          }
         }
+      });
     }
-
-    getDefaultScene() {
-        if (this.game && this.game.scene.keys.default) {
-            return this.game.scene.keys.default;
-        }
-        console.error("Default scene is not available.");
-        return null;
-    }
-
-    addAgent(agentConfigs) {
-        agentConfigs.forEach((config) => {
-            if (!config.id) {
-                console.error("Agent must have a unique 'id' property:", config);
-                return;
-            }
-            if (this.agentMap.has(config.id)) {
-                console.warn(`Agent with ID '${config.id}' already exists. Skipping:`, config);
-                return;
-            }
-
-            this.agents.push(config);
-            console.log(`Creating agent with ID: ${config.id}`);
-            this.createAgent(config);
-        });
-
-        console.log("Agents loaded into the scene:", this.agents);
-    }
-
-    createAgent(agent) {
-        const scene = this.getDefaultScene();
-        if (!scene) {
-            console.warn(`Scene not ready for agent: ${agent.id}. Retrying...`);
-            setTimeout(() => this.createAgent(agent), 100);
-            return;
-        }
-
-        if (this.agentMap.has(agent.id)) {
-            console.warn(`Agent with ID '${agent.id}' already exists.`);
-            return this.agentMap.get(agent.id);
-        }
-
-        const sprite = scene.add.sprite(agent.position_x || 100, agent.position_y || 100, agent.name);
-        sprite.setScale(agent.scale || 1);
-        sprite.setOrigin(agent.anchor || 0.5);
-        sprite.visible = agent.visible !== false;
-
-        sprite.setInteractive();
-        sprite.on("pointerdown", () => {
-            console.log(`Sprite clicked: ${agent.name}`);
-            alert(`${agent.name} says: ${agent.description || "No description available."}`);
-        });
-
-        if (agent.animations) {
-            Object.entries(agent.animations).forEach(([key, animation]) => {
-                scene.anims.create({
-                    key: `${agent.name}_${key}`,
-                    frames: scene.anims.generateFrameNumbers(agent.name, { frames: animation.frames }),
-                    frameRate: animation.fps,
-                    repeat: -1,
-                });
-            });
-            sprite.anims.play(`${agent.name}_${agent.state || "idle"}`);
-        }
-
-        this.agentMap.set(agent.id, sprite);
-        console.log(`Agent added to agentMap with ID: ${agent.id}`);
-        return sprite;
-    }
-
-	teleportAgentById(id, x, y) {
-	    const sprite = this.agentMap.get(id);
-	    if (!sprite) {
-	        console.error(`No agent found with ID: ${id}`);
-	        return;
-	    }
-
-	    sprite.x = x;
-	    sprite.y = y;
-	    console.log(`Teleported agent '${id}' to (${x}, ${y})`);
-	}
-
-
-    updateAgentStateById(id, state) {
-        const sprite = this.agentMap.get(id);
-        if (!sprite) {
-            console.error(`No agent found with ID: ${id}`);
-            return;
-        }
-
-        if (sprite.anims) {
-            sprite.anims.play(`${sprite.texture.key}_${state}`);
-            console.log(`Updated agent '${id}' to state '${state}'`);
+  
+    addAgent(configs) {
+      if (!this.scene || !this.scene.textures) {
+        this.pendingAgents.push(...configs);
+        return;
+      }
+  
+      configs.forEach(config => {
+        if (!this.scene.textures.exists(config.id)) {
+          this.scene.load.spritesheet(config.id, config.texture, {
+            frameWidth: config.frameWidth,
+            frameHeight: config.frameHeight
+          });
+          
+          this.scene.load.once('complete', () => {
+            this._createAgent(config);
+          });
+          
+          this.scene.load.start();
         } else {
-            console.warn(`No animations available for agent '${id}'`);
+          this._createAgent(config);
         }
+      });
     }
-}
+  
+    _createAgent(config) {
+      Object.entries(config.animations).forEach(([name, anim]) => {
+        const animKey = `${config.id}_${name}`;
+        try {
+          // Try to remove existing animation
+          const existingAnim = this.scene.anims.get(animKey);
+          if (existingAnim) {
+            this.scene.anims.remove(animKey);
+          }
+  
+          // Create new animation
+          this.scene.anims.create({
+            key: animKey,
+            frames: this.scene.anims.generateFrameNumbers(config.id, {
+              frames: anim.frames
+            }),
+            frameRate: anim.fps,
+            repeat: -1
+          });
+        } catch (error) {
+          console.error('Animation creation error:', error);
+        }
+      });
+  
+      const sprite = this.scene.add.sprite(
+        config.position_x,
+        config.position_y,
+        config.id
+      );
+      sprite.setScale(config.scale);
+  
+      this.agents.set(config.id, {
+        sprite,
+        config,
+        currentState: config.state
+      });
+  
+      const initialAnimKey = `${config.id}_${config.state}`;
+      try {
+        sprite.anims.play(initialAnimKey);
+      } catch (error) {
+        console.error('Animation play error:', error);
+      }
+    }
+  
+    teleportAgentById(id, x, y) {
+      const agent = this.agents.get(id);
+      if (agent?.sprite) {
+        agent.sprite.x = x;
+        agent.sprite.y = y;
+      }
+    }
+  
+    updateAgentStateById(id, state) {
+      const agent = this.agents.get(id);
+      if (agent?.sprite) {
+        agent.currentState = state;
+        const animKey = `${id}_${state}`;
+        try {
+          agent.sprite.anims.play(animKey);
+        } catch (error) {
+          console.error('State update animation error:', error);
+        }
+      }
+    }
+  }
+  
+  window.SimWorld = SimWorld; 
